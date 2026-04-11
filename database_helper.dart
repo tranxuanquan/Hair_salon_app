@@ -18,7 +18,7 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (kIsWeb) throw Exception("SQLite không hỗ trợ Web");
     if (_database != null) return _database!;
-    _database = await _initDB('hairsalon_v6.db'); // Nâng cấp lên v6 để đồng bộ cột
+    _database = await _initDB('hairsalon_v10.db');
     return _database!;
   }
 
@@ -29,44 +29,40 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    // 1. Bảng tài khoản khách hàng
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
-        fullName TEXT NOT NULL,
-        role TEXT NOT NULL
+        username VARCHAR(50) NOT NULL UNIQUE,
+        password VARCHAR(50) NOT NULL,
+        fullName VARCHAR(100) NOT NULL,
+        role VARCHAR(20) NOT NULL
       )
     ''');
 
-    // 2. Bảng dịch vụ (Kiểu tóc)
     await db.execute('''
       CREATE TABLE services (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        price TEXT,
-        category TEXT,
-        description TEXT
+        name VARCHAR(100) NOT NULL,
+        price VARCHAR(20),
+        category VARCHAR(50),
+        description VARCHAR(255)
       )
     ''');
 
-    // 3. Bảng đặt lịch (Đã thêm đầy đủ cột để khớp với Model Customer)
     await db.execute('''
       CREATE TABLE customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        phone TEXT,
-        email TEXT,
-        service TEXT,
-        barber TEXT,
-        date TEXT,
-        time TEXT,
-        created_at TEXT
+        name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
+        email VARCHAR(50),
+        service VARCHAR(100),
+        barber VARCHAR(100),
+        date DATE,
+        time TIME,
+        created_at DATETIME
       )
     ''');
 
-    // Nạp dữ liệu mẫu ban đầu
     await db.insert('users', {'username': 'admin', 'password': '123', 'fullName': 'Quản trị viên', 'role': 'admin'});
     
     for (var style in ServiceData.hairStyles) {
@@ -74,15 +70,16 @@ class DatabaseHelper {
     }
   }
 
-  // Lấy danh sách dịch vụ từ DB
   Future<List<HairService>> getServicesByCategory(String category) async {
     if (kIsWeb) return ServiceData.hairStyles;
     final db = await instance.database;
     final result = await db.query('services', where: 'category = ?', whereArgs: [category]);
-    return result.map((json) => HairService(name: json['name'] as String, price: json['price'] as String)).toList();
+    return result.map((json) => HairService(
+      name: json['name'].toString(), 
+      price: json['price'].toString()
+    )).toList();
   }
 
-  // Lưu thông tin khách hàng đặt lịch
   Future<int> insertCustomer(Customer customer) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
@@ -93,12 +90,9 @@ class DatabaseHelper {
       return 1;
     }
     final db = await instance.database;
-    final id = await db.insert('customers', customer.toMap());
-    print("--- ĐÃ LƯU ĐẶT LỊCH THÀNH CÔNG: ID $id ---");
-    return id;
+    return await db.insert('customers', customer.toMap());
   }
 
-  // Lấy toàn bộ lịch sử đặt lịch
   Future<List<Customer>> getAllCustomers() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
@@ -112,7 +106,6 @@ class DatabaseHelper {
     return result.map((json) => Customer.fromMap(json)).toList();
   }
 
-  // Đăng ký người dùng mới
   Future<int> registerUser(UserModel user) async {
     if (kIsWeb) {
       final users = await _getWebUsers();
@@ -123,7 +116,6 @@ class DatabaseHelper {
     return await db.insert('users', user.toMap());
   }
 
-  // Đăng nhập
   Future<UserModel?> loginUser(String username, String password) async {
     if (kIsWeb) {
       final users = await _getWebUsers();
