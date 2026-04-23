@@ -1,12 +1,12 @@
 class UserModel {
-  final int? id;
+  final String id; // Đổi sang String cho Firebase UID
   final String username;
   final String password;
-  final String fullName; // Họ và tên
-  final String role; // 'admin' hoặc 'customer'
+  final String fullName;
+  final String role;
 
   UserModel({
-    this.id,
+    required this.id,
     required this.username,
     required this.password,
     required this.fullName,
@@ -25,11 +25,11 @@ class UserModel {
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      id: map['id'],
-      username: map['username'],
-      password: map['password'],
+      id: map['id'] ?? '',
+      username: map['username'] ?? '',
+      password: map['password'] ?? '',
       fullName: map['fullName'] ?? '',
-      role: map['role'],
+      role: map['role'] ?? 'customer',
     );
   }
 }
